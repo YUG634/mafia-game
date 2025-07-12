@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "@fontsource/press-start-2p";
+import Particles from "react-tsparticles";
 import PlayerInput from "./components/PlayerInput";
 import RoleRevealModal from "./components/RoleRevealModal";
 import "./App.css";
@@ -9,27 +9,88 @@ function App() {
   const [assignedRoles, setAssignedRoles] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [seenRoles, setSeenRoles] = useState({});
+  const [mafiaCount, setMafiaCount] = useState(1);
 
   const assignRoles = () => {
-    if (players.length < 4) return;
+    if (players.length < mafiaCount + 2) {
+      alert("Not enough players for selected number of mafias.");
+      return;
+    }
 
-    const roles = ["Mafia", "Detective", "Doctor"];
-    const shuffled = [...players].sort(() => Math.random() - 0.5);
-    const assignments = shuffled.map((player, index) => {
-      const role = index < roles.length ? roles[index] : "Villager";
-      return { name: player, role };
-    });
+    const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+    const assignments = [];
+
+    // Add mafias
+    for (let i = 0; i < mafiaCount; i++) {
+      assignments.push({ name: shuffledPlayers[i], role: "Mafia" });
+    }
+
+    // Add detective
+    if (shuffledPlayers.length > assignments.length) {
+      assignments.push({
+        name: shuffledPlayers[assignments.length],
+        role: "Detective",
+      });
+    }
+
+    // Add doctor
+    if (shuffledPlayers.length > assignments.length) {
+      assignments.push({
+        name: shuffledPlayers[assignments.length],
+        role: "Doctor",
+      });
+    }
+
+    // Remaining players = villagers
+    for (let i = assignments.length; i < shuffledPlayers.length; i++) {
+      assignments.push({ name: shuffledPlayers[i], role: "Villager" });
+    }
 
     setAssignedRoles(assignments.sort(() => Math.random() - 0.5));
     setSeenRoles({});
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center px-4 py-10 text-white">
-      <div className="glass-box max-w-xl w-full z-10">
-        <h1 className="text-yellow-400 text-2xl sm:text-3xl text-center mb-8 font-bold drop-shadow">
-          🕵️ Mafia Night
+    <div className="relative min-h-screen bg-[url('https://cdn.pixabay.com/photo/2016/11/23/15/36/abstract-1850228_1280.jpg')] bg-cover bg-center flex items-center justify-center px-4 py-10 text-white overflow-hidden">
+
+      {/* Particle Animation */}
+      <Particles
+        options={{
+          fpsLimit: 60,
+          particles: {
+            number: { value: 50 },
+            size: { value: 2 },
+            move: { enable: true, speed: 1 },
+            opacity: { value: 0.3 },
+            color: { value: "#ffffff" },
+          },
+        }}
+        className="absolute inset-0 z-0"
+      />
+
+      {/* Game UI */}
+      <div className="relative z-10 bg-black bg-opacity-60 backdrop-blur-md p-6 rounded-3xl max-w-xl w-full shadow-2xl">
+        <h1 className="text-4xl font-bold text-center text-yellow-400 drop-shadow-lg mb-6 tracking-wider">
+          🕵️ Mafia Mayhem
         </h1>
+
+        {/* Mafia Count Selector */}
+        <div className="mb-6 text-center">
+          <label className="font-semibold text-yellow-300 mr-2">
+            Number of Mafias:
+          </label>
+          <select
+            value={mafiaCount}
+            onChange={(e) => setMafiaCount(parseInt(e.target.value))}
+            className="text-black px-3 py-1 rounded"
+          >
+            {[1, 2, 3, 4, 5].map((num) => (
+              <option key={num} value={num}>
+                {num}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <PlayerInput
           players={players}
@@ -38,24 +99,25 @@ function App() {
         />
 
         {assignedRoles.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-yellow-200 text-lg text-center mb-4">
+          <div className="mt-8 bg-gray-900 bg-opacity-60 rounded-2xl p-5 border border-yellow-600 shadow-xl">
+            <h2 className="text-xl font-semibold mb-4 text-center text-yellow-300">
               Tap your name to reveal your role
             </h2>
-            <ul className="flex flex-col gap-3">
+            <ul className="space-y-3">
               {assignedRoles.map((player, index) => (
                 <li
                   key={index}
-                  className={`player-tile ${
-                    seenRoles[player.name] ? "opacity-50" : ""
-                  }`}
                   onClick={() => {
-                    if (!seenRoles[player.name]) {
+                    const alreadySeen = seenRoles[player.name];
+                    if (!alreadySeen) {
                       setSelectedPlayer(player);
                     } else {
-                      alert("⚠️ You have already seen your role.");
+                      alert("⚠️ This role has already been viewed.");
                     }
                   }}
+                  className={`cursor-pointer text-center py-3 rounded-xl bg-gray-700 hover:bg-gray-600 transition font-medium shadow-md ${
+                    seenRoles[player.name] ? "opacity-50" : ""
+                  }`}
                 >
                   {player.name}
                 </li>
@@ -63,38 +125,6 @@ function App() {
             </ul>
           </div>
         )}
-        {assignedRoles.length > 0 && (
-  <div className="text-center mt-6">
-    <button
-      onClick={() => {
-        setAssignedRoles([]);
-        setSeenRoles({});
-        setSelectedPlayer(null);
-      }}
-      className="neon-button"
-    >
-      🔄 New Game (Keep Players)
-    </button>
-  </div>
-)}
-
-  {players.length > 0 && (
-  <div className="text-center mt-2">
-    <button
-      onClick={() => {
-        setPlayers([]);
-        setAssignedRoles([]);
-        setSeenRoles({});
-        setSelectedPlayer(null);
-      }}
-      className="neon-button bg-yellow-500 hover:bg-yellow-600"
-    >
-      🧹 Clear All Players
-    </button>
-  </div>
-)}
-
-
 
         <RoleRevealModal
           player={selectedPlayer}
